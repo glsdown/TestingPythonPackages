@@ -7,7 +7,7 @@ from first_package import (
     get_row_number,
 )
 
-config = {
+default_config = {
     "name": "default",
     "test": {
         "columns": {

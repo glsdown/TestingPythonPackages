@@ -1,7 +1,8 @@
+import collections.abc
 import pandas as pd
 
 
-def apply_pipeline_from_config(config, filetype, data):
+def apply_transformation_from_config(config, filetype, data):
     """
     Basic application of a python configuration file to a dataframe
 
@@ -33,6 +34,8 @@ def apply_pipeline_from_config(config, filetype, data):
                 raise exception(
                     "Keyword 'data' is only applicable for 'functiontype' of 'columns'"
                 )
+            elif operation["functiontype"] == "dataframe":
+                result = fn(data, **operation["kwargs"])
             # Apply the function using the kwargs only
             else:
                 result = fn(**operation["kwargs"])
@@ -45,3 +48,20 @@ def apply_pipeline_from_config(config, filetype, data):
                 df[col] = result
 
     return df
+
+
+def update_default_config(default, custom):
+    """
+    Update a config dictionary with values in a second one
+
+    :default: the default configuration to be updated
+    :custom: the overrides to change
+    :returns: dictionary with configuration in it
+    """
+
+    for k, v in custom.items():
+        if isinstance(v, collections.abc.Mapping):
+            default[k] = update_default_config(default.get(k, {}), v)
+        else:
+            default[k] = v
+    return default

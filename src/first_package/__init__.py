@@ -1,2 +1,9 @@
-from .transformations import strip_whitespace, calculate_total, identify_uom
-from .apply_configuration import apply_pipeline_from_config
+from .transformations import (
+    strip_whitespace,
+    calculate_total,
+    remove_vat,
+    identify_uom,
+    get_numeric,
+    get_row_number,
+)
+from .apply_configuration import apply_transformation_from_config, update_default_config
