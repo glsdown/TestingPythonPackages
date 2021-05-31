@@ -1,7 +1,15 @@
 import collections.abc
+import logging
 import pandas as pd
-from pydantic import BaseModel, ValidationError
-from typing import Any, Callable, Dict, List, Tuple, Union
+from pydantic import BaseModel, ValidationError, confloat
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from .validators import (
+    check_column_names,
+    check_filestructure,
+    check_filedates,
+    check_filename,
+)
 
 
 def check_configuration(config):
@@ -11,17 +19,51 @@ def check_configuration(config):
     :config: The dictionary configuration
     """
 
-    class ColumnConfiguration(BaseModel):
+    class TransformationColumnConfiguration(BaseModel):
         function: Callable
         data: List[str]
         functiontype: str
         kwargs: Dict[str, Any]
 
+    class ValidationColumnConfiguration(BaseModel):
+        title: str
+        functions: List[Callable]
+        threshold: confloat(ge=0, le=1)
+        mandatory: bool
+
+    class FileNameConfiguration(BaseModel):
+        validate: bool
+        pattern: str
+
+    class FileStructureConfiguration(BaseModel):
+        validate: bool
+        multiple_sheets: bool
+
+    class FileDatesConfiguration(BaseModel):
+        validate: bool
+        data_field: Optional[str]
+        min_file_date_regex: Optional[str]
+        max_file_date_regex: Optional[str]
+        grace_days: Optional[int]
+
+    class CheckHeadingsConfiguration(BaseModel):
+        validate: bool
+
     class TransformationConfiguration(BaseModel):
-        columns: Dict[Union[str, Tuple[str, ...]], List[ColumnConfiguration]]
+        columns: Dict[
+            Union[str, Tuple[str, ...]], List[TransformationColumnConfiguration]
+        ]
+
+    class ValidationConfiguration(BaseModel):
+        check_filename: FileNameConfiguration
+        check_filedates: FileDatesConfiguration
+        check_filestructure: FileStructureConfiguration
+        check_headings: CheckHeadingsConfiguration
+        columns: Dict[Union[str, Tuple[str, ...]], ValidationColumnConfiguration]
 
     class ConfigurationBase(BaseModel):
         name: str
+        validation: ValidationConfiguration
         transformation: TransformationConfiguration
 
     try:
@@ -37,7 +79,6 @@ def apply_transformation_from_config(config, data):
     Basic application of a python configuration file to a dataframe
 
     :config: dictionary of the required transformations
-    :filetype: string, the type of file being processed
     :data: dataframe of data to apply the functions to
     :returns: dataframe of columns as documented in the config
     """
@@ -78,6 +119,55 @@ def apply_transformation_from_config(config, data):
                 df[col] = result
 
     return df
+
+
+def apply_validation_from_config(config, data, datafilepath):
+    """
+    Check a file fulfils basic validation criteria
+
+    :config: dictionary of the required validation checks
+    :data: dataframe of data to apply the functions to
+    :filepath: pathlib.Path object to the original source file
+    :returns: True or False on whether file passes the required checks
+    """
+
+    # Extract the configuration
+    meta = config["validation"]
+
+    # Set a variable to keep track of how the file is doing
+    file_pass = True
+
+    # Check whether to check the filename format
+    if meta["check_filename"]["validate"]:
+        file_pass = file_pass and check_filename(
+            datafilepath, meta["check_filename"]["pattern"]
+        )
+
+    # Check whether to check the dates in the file match those in the filename
+    if meta["check_filedates"]["validate"]:
+
+        file_pass = file_pass and check_filedates(
+            meta["check_filedates"],
+            data[meta["check_filedates"]["data_field"]],
+            f"{datafilepath.stem}{datafilepath.suffix}",
+        )
+
+    # Check whether to check the file structure e.g. multiple sheets etc.
+    if meta["check_filestructure"]["validate"]:
+        file_pass = file_pass and check_filestructure(
+            datafilepath, meta["check_filestructure"]
+        )
+
+    # Check whether to check the headings or not
+    if meta["check_headings"]["validate"]:
+
+        file_pass = file_pass and check_column_names(
+            expected_headings=meta["columns"].keys(), found_headings=data.columns
+        )
+
+    # If it's passed up until this point check the individual columns
+    if file_pass:
+        pass  # TODO
 
 
 def update_default_config(default, custom):
