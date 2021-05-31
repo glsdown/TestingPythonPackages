@@ -6,4 +6,8 @@ from .transformations import (
     get_numeric,
     get_row_number,
 )
-from .apply_configuration import apply_transformation_from_config, update_default_config
+from .apply_configuration import (
+    apply_transformation_from_config,
+    update_default_config,
+    check_configuration,
+)

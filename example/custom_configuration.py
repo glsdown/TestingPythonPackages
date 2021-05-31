@@ -2,7 +2,7 @@ from first_package import remove_vat
 
 custom_config = {
     "name": "custom",
-    "test": {
+    "transformation": {
         "columns": {
             "price": [
                 {

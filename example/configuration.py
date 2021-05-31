@@ -9,7 +9,7 @@ from first_package import (
 
 default_config = {
     "name": "default",
-    "test": {
+    "transformation": {
         "columns": {
             "price": [
                 {

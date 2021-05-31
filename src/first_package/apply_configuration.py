@@ -1,8 +1,36 @@
 import collections.abc
 import pandas as pd
+from pydantic import BaseModel, ValidationError
+from typing import Any, Callable, Dict, List
 
 
-def apply_transformation_from_config(config, filetype, data):
+def check_configuration(config):
+    """
+    Checks the configuration fits the required pattern
+
+    :config: The dictionary configuration
+    """
+
+    class ColumnConfiguration(BaseModel):
+        function: Callable
+        data: List[str]
+        functiontype: str
+        kwargs: Dict[str, Any]
+
+    class TransformationConfiguration(BaseModel):
+        columns: Dict[str, List[ColumnConfiguration]]
+
+    class ConfigurationBase(BaseModel):
+        name: str
+        transformation: TransformationConfiguration
+
+    try:
+        config = ConfigurationBase(config)
+    except ValidationError as e:
+        print(e.json())
+
+
+def apply_transformation_from_config(config, data):
     """
     Basic application of a python configuration file to a dataframe
 
@@ -16,7 +44,7 @@ def apply_transformation_from_config(config, filetype, data):
     df = pd.DataFrame(index=data.index)
 
     # Apply configuration to columns
-    for col, meta in config[filetype]["columns"].items():
+    for col, meta in config["transformation"]["columns"].items():
         # For each function to be applied
         for operation in meta:
             fn = operation["function"]
