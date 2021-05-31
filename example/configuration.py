@@ -24,14 +24,14 @@ default_config = {
     "filetype": "test",
     "validation": {
         "check_filename": {
-            "validate": False,
+            "validate": True,
             "pattern": r"^[a-zA-Z0-9]{3}_01[0-9]{4}_[0-9]{6}",
         },
         "check_filedates": {
-            "validate": False,
+            "validate": True,
             "data_field": "DATE",
-            "min_file_date_regex": r"^[a-zA-Z]{3}_([0-9]{6})_[0-9]{6}.xlsx$",
-            "max_file_date_regex": r"^[a-zA-Z]{3}_[0-9]{6}_([0-9]{6}).xlsx$",
+            "min_file_date_regex": r"^[a-zA-Z]{3}_([0-9]{6})_[0-9]{6}$",
+            "max_file_date_regex": r"^[a-zA-Z]{3}_[0-9]{6}_([0-9]{6})$",
             "grace_days": 10,
         },
         "check_filestructure": {"validate": True, "multiple_sheets": False},

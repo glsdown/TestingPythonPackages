@@ -1,7 +1,7 @@
 import collections.abc
 import logging
 import pandas as pd
-from pydantic import BaseModel, ValidationError, confloat
+from pydantic import BaseModel, Field, ValidationError, confloat
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from .validators import (
@@ -9,6 +9,7 @@ from .validators import (
     check_filestructure,
     check_filedates,
     check_filename,
+    check_column,
 )
 
 
@@ -32,22 +33,22 @@ def check_configuration(config):
         mandatory: bool
 
     class FileNameConfiguration(BaseModel):
-        validate: bool
+        validate_: bool = Field(alias="validate")
         pattern: str
 
     class FileStructureConfiguration(BaseModel):
-        validate: bool
+        validate_: bool = Field(alias="validate")
         multiple_sheets: bool
 
     class FileDatesConfiguration(BaseModel):
-        validate: bool
+        validate_: bool = Field(alias="validate")
         data_field: Optional[str]
         min_file_date_regex: Optional[str]
         max_file_date_regex: Optional[str]
         grace_days: Optional[int]
 
     class CheckHeadingsConfiguration(BaseModel):
-        validate: bool
+        validate_: bool = Field(alias="validate")
 
     class TransformationConfiguration(BaseModel):
         columns: Dict[
@@ -149,7 +150,7 @@ def apply_validation_from_config(config, data, datafilepath):
         file_pass = file_pass and check_filedates(
             meta["check_filedates"],
             data[meta["check_filedates"]["data_field"]],
-            f"{datafilepath.stem}{datafilepath.suffix}",
+            f"{datafilepath.stem}",
         )
 
     # Check whether to check the file structure e.g. multiple sheets etc.
@@ -167,7 +168,27 @@ def apply_validation_from_config(config, data, datafilepath):
 
     # If it's passed up until this point check the individual columns
     if file_pass:
-        pass  # TODO
+        columns = meta["columns"]
+
+        # Drop empty rows
+        data = data.dropna(how="all")
+
+        logging.info("Checking each column statistics.")
+        # Check the validity stats of each column
+        for col, criteria in columns.items():
+            logging.info(f"Checking column {col}...")
+            # If it's a mandatory column, and doesn't pass checks, fail it
+            if criteria["mandatory"] and not check_column(
+                data[criteria["title"]],
+                criteria["functions"],
+                criteria["threshold"],
+            ):
+                logging.error(
+                    f"{col} did not pass checks, so the file will be rejected."
+                )
+                file_pass = False
+
+    return file_pass
 
 
 def update_default_config(default, custom):

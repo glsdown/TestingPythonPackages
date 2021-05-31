@@ -7,6 +7,7 @@ from .transformations import (
     get_row_number,
 )
 from .apply_configuration import (
+    apply_validation_from_config,
     apply_transformation_from_config,
     update_default_config,
     check_configuration,

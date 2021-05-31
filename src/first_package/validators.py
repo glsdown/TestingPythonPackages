@@ -28,32 +28,20 @@ def check_column(data, functions, threshold):
     # Identify the number of values in the column
     data_total = data.count()
 
-    result = {
-        "pass": True,
-        "comment": "",
-        "summary": "Yes",
-    }
-
     if data_total == 0 or data_invalid == data_total:
         # If entire column is invalid or empty
-        result = {
-            "pass": False,
-            "comment": "Header supplied, but all data invalid or missing.",
-            "summary": "No - see notes",
-        }
+        logging.error("Header supplied, but all data invalid or missing.")
+        return False
     else:
         # Find the percentage of invalid values
         data_perc = data_invalid / data_total
 
         # Check whether the % invalid values is above or below the threshold
         if data_perc > threshold:
-            result = {
-                "pass": False,
-                "comment": f"{data_perc*100 : .2f}% of values are blank or invalid",
-                "summary": "Yes - see notes",
-            }
+            logging.error(f"{data_perc*100 : .2f}% of values are blank or invalid")
+            return False
 
-    return result
+    return True
 
 
 def check_column_names(expected_headings, found_headings):
@@ -64,6 +52,8 @@ def check_column_names(expected_headings, found_headings):
     :found_headings: a list of headings in the data set
     :returns: True if all headings are identical, and False otherwise
     """
+    column_missing = False
+    column_additional = False
 
     # Check if column headings exist
     logging.info("Checking column headers are correct.")
@@ -111,7 +101,7 @@ def check_filename(filepath, filename_pattern):
     filename_no_ext = filepath.stem
 
     # Check whether it's .XLSX or .XLS
-    if filepath.suffix[1:].upper() not in ["XLSX", "XLS"]:
+    if filepath.suffix[1:].upper() not in ["CSV", "XLSX", "XLS"]:
         logging.error("Not an Excel file.")
         return False
     else:
@@ -138,15 +128,19 @@ def check_filedates(config, data, filename):
     # Try and convert to date time
     if min_file_date and max_file_date:
         min_file_date = pd.to_datetime(
-            min_file_date.group(), errors="coerce", format="%d%m%y", exact=True
+            min_file_date.groups()[0], errors="coerce", format="%d%m%y", exact=True
         )
         max_file_date = pd.to_datetime(
-            max_file_date.group(), errors="coerce", format="%d%m%y", exact=True
+            max_file_date.groups()[0], errors="coerce", format="%d%m%y", exact=True
         )
 
-        if not (min_file_date and max_file_date):
+        if pd.isna(min_file_date) or pd.isna(max_file_date):
             logging.error("Could not identify dates from filename.")
             return False
+
+        logging.info(
+            f"Date range from the filename is {min_file_date.strftime('%d/%m/%Y')} to {max_file_date.strftime('%d/%m/%Y')}"
+        )
 
         # Check data quality
         if min_file_date != first_of_month(
@@ -171,10 +165,6 @@ def check_filedates(config, data, filename):
         logging.info(
             f"Date range included in this file is {min_date.strftime('%d/%m/%Y')} to {max_date.strftime('%d/%m/%Y')}"
         )
-
-    logging.info(
-        f"Date range from the filename is {min_file_date.strftime('%d/%m/%Y')} to {max_file_date.strftime('%d/%m/%Y')}"
-    )
 
     # Check whether the intended period matches the file
     grace_days = config["grace_days"]
