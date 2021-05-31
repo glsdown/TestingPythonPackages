@@ -11,7 +11,7 @@ from custom_configuration import custom_config
 if __name__ == "__main__":
 
     # Read in the data
-    df = pd.read_csv("data.csv")
+    df = pd.read_csv("data.csv", mangle_dupe_cols=True)
 
     # Identify any additional configurations required
     config = update_default_config(default_config, custom_config)
