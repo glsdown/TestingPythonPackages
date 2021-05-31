@@ -1,0 +1,16 @@
+solids:
+  read_data:
+    config:
+      data_path: "data.csv"
+  get_numeric:
+    config:
+      columns:
+         - price
+         - qty
+  strip_whitespace:
+    config:
+      columns:
+        - code
+  add_row_number:
+    config:
+      column_name: "tommy_is_amazing"
