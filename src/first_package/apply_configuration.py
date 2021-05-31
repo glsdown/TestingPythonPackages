@@ -1,7 +1,7 @@
 import collections.abc
 import pandas as pd
 from pydantic import BaseModel, ValidationError
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 
 def check_configuration(config):
@@ -18,16 +18,18 @@ def check_configuration(config):
         kwargs: Dict[str, Any]
 
     class TransformationConfiguration(BaseModel):
-        columns: Dict[str, List[ColumnConfiguration]]
+        columns: Dict[Union[str, Tuple[str, ...]], List[ColumnConfiguration]]
 
     class ConfigurationBase(BaseModel):
         name: str
         transformation: TransformationConfiguration
 
     try:
-        config = ConfigurationBase(config)
+        config = ConfigurationBase(**config)
+        return True
     except ValidationError as e:
         print(e.json())
+        return False
 
 
 def apply_transformation_from_config(config, data):

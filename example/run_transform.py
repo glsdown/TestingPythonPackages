@@ -16,7 +16,9 @@ if __name__ == "__main__":
     # Identify any additional configurations required
     config = update_default_config(default_config, custom_config)
 
-    check_configuration(config)
-
-    # Display the result
-    print(apply_transformation_from_config(config, df))
+    # Check the config file is the right format
+    if check_configuration(config):
+        # Display the result
+        print(apply_transformation_from_config(config, df))
+    else:
+        print("Ill formed configuration file")
